@@ -13,5 +13,6 @@ AC_LANG(C++)
 AC_PROG_RANLIB
 
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_SUBDIRS([test/data])
+AC_CONFIG_FILES([Makefile test/data/Makefile])
 AC_OUTPUT
