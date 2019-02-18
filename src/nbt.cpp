@@ -289,13 +289,6 @@ T NBTFile::readTagArray(std::string name, int32_t size) {
   return tag;
 }
 
-template <typename T>
-ListTag<T> NBTFile::readTagList() {
-  std::string name = readName();
-  TagID id = readID();
-  return readTagList<T>(id, name);
-}
-
 
 template <typename T>
 ListTag<T> NBTFile::readTagList(TagID id, std::string name) {
@@ -306,6 +299,26 @@ ListTag<T> NBTFile::readTagList(TagID id, std::string name) {
   }
   return list;
 }
+
+template <typename T>
+ListTag<T> NBTFile::readTagList() {
+  std::string name = readName();
+  TagID id = readID();
+  return readTagList<T>(id, name);
+}
+
+
+template ListTag<ByteTag> NBTFile::readTagList<ByteTag>();
+template ListTag<ShortTag> NBTFile::readTagList<ShortTag>();
+template ListTag<IntTag> NBTFile::readTagList<IntTag>();
+template ListTag<LongTag> NBTFile::readTagList<LongTag>();
+template ListTag<FloatTag> NBTFile::readTagList<FloatTag>();
+template ListTag<DoubleTag> NBTFile::readTagList<DoubleTag>();
+template ListTag<ByteArrayTag> NBTFile::readTagList<ByteArrayTag>();
+template ListTag<IntArrayTag> NBTFile::readTagList<IntArrayTag>();
+template ListTag<LongArrayTag> NBTFile::readTagList<LongArrayTag>();
+template ListTag<StringTag> NBTFile::readTagList<StringTag>();
+template ListTag<EndTag> NBTFile::readTagList<EndTag>();
 
 template<>
 ListTag<CompoundTag> NBTFile::readTagList<CompoundTag>(TagID id, std::string name) {
