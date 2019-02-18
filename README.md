@@ -11,6 +11,16 @@ $ ./configure
 $ make
 ```
 
+# Running tests
+
+Build and run tests with
+```shell
+$ make check
+```
+
+Look at `test_nbt.log` for test results of individual cases, or you can run
+`./test_nbt` by hand for color-coded output.
+
 # License
 
 Copyright (C) 2019  Zack Marvel
@@ -27,7 +37,3 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
-
-
