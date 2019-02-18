@@ -25,6 +25,9 @@
 #include <vector>
 #include <memory>
 #include <fstream>
+#include <exception>
+#include <iostream>
+
 
 enum class TagID {
   END = 0,
@@ -53,6 +56,9 @@ struct Tag : TagBase {
     std::string name;
     T value;
 
+    static T ftoh(T unswapped);
+    static T htof(T unswapped);
+
     constexpr TagID getID() {
       return id;
     }
@@ -65,9 +71,9 @@ struct Tag : TagBase {
 
 // don't inherit from Tag<id, T> to avoid unnecessary members
 class EndTag : TagBase {
-  constexpr TagID getID() {
-    return TagID::END;
-  }
+  public:
+    explicit EndTag() { }
+    ~EndTag() = default;
 };
 
 // can't do this because Tag has a `value` member that cannot inhabit `void`
@@ -99,6 +105,8 @@ using ByteArrayTag = Tag<TagID::BYTE_ARRAY, std::unique_ptr<std::vector<int8_t>>
 using IntArrayTag = Tag<TagID::INT_ARRAY, std::unique_ptr<std::vector<int32_t>>>;
 using LongArrayTag = Tag<TagID::LONG_ARRAY, std::unique_ptr<std::vector<int64_t>>>;
 
+using StringTag = Tag<TagID::STRING, std::unique_ptr<std::string>>;
+
 // Could I constrain T to Tag<id, T>??
 //template <typename T>
 //class ArrayTag {
@@ -110,20 +118,41 @@ using LongArrayTag = Tag<TagID::LONG_ARRAY, std::unique_ptr<std::vector<int64_t>
 template <typename T>
 class ListTag : public Tag<TagID::LIST, std::unique_ptr<std::vector<typename T::type>>> {
   public:
-    explicit ListTag(std::string name, TagID memberID, int32_t size) :
+    explicit ListTag(std::string name, int32_t size) :
       Tag<TagID::LIST, std::unique_ptr<std::vector<typename T::type>>>
         (name, std::move(std::make_unique<std::vector<typename T::type>>(size))),
-      memberID{memberID},
       size{size} { }
 
     void push_back(T tag) {
       (this->value)->push_back(std::move(tag.value));
     }
 
-    TagID memberID;
+    constexpr TagID getID() {
+      return TagID::LIST;
+    }
+
     int32_t size;
 };
 
+
+template <>
+class ListTag<EndTag> : public TagBase {
+  public:
+    explicit ListTag(std::string name, int32_t size) :
+      name{name},
+      size{size} { }
+    ~ListTag() = default;
+
+    template<typename T>
+    ListTag<T> push_back(T tag) {
+      ListTag<T> newList(name, size);
+      newList.push_back(std::move(tag));
+      return newList;
+    }
+
+    std::string name;
+    int32_t size;
+};
 
 
 // How can we store different types of values without using void*?
@@ -142,13 +171,20 @@ class CompoundTag : TagBase {
   //  LongArrayTag::type vLongArray;
   //} Value;
   public:
-    explicit CompoundTag(std::string name) : name{name} { }
+    typedef TagBase type;
+    CompoundTag() :
+      name{}
+    { }
+
+    CompoundTag(std::string name) :
+      name{name}
+    { }
 
     template <typename T>
-      void push_back(TagID id, T tag) {
-        ids.push_back(id);
-        value.push_back(tag);
-      }
+    void push_back(TagID id, T tag) {
+      ids.push_back(id);
+      value.push_back(tag);
+    }
 
     std::string name;
 
@@ -159,6 +195,49 @@ class CompoundTag : TagBase {
 
 
 
+template <>
+class ListTag<CompoundTag> : public Tag<TagID::LIST, std::unique_ptr<std::vector<CompoundTag>>> {
+  public:
+    explicit ListTag(std::string name, TagID memberID, int32_t size) :
+      Tag<TagID::LIST, std::unique_ptr<std::vector<CompoundTag>>>
+        (name, std::move(std::make_unique<std::vector<CompoundTag>>(size))),
+      memberID{memberID},
+      size{size},
+      tail{0}
+      { }
+
+    void push_back(CompoundTag tag) {
+      (*this->value)[tail] = std::move(tag);
+    }
+
+    TagID memberID;
+    int32_t size;
+
+  private:
+    size_t tail;
+};
+
+
+
+
+class NBTTagException : public std::exception {
+  public:
+    explicit NBTTagException(TagID id, std::string why) :
+      id{id}, why{why}
+    { }
+
+    virtual const char* what()
+    {
+      //std::string expl = why + ": " + std::to_string(static_cast<int>(id));
+      //return expl.c_str();
+      why.append(": ");
+      why.append(std::to_string(static_cast<int>(id)));
+      return why.c_str();
+    }
+
+    TagID id;
+    std::string why;
+};
 
 
 class NBTFile {
@@ -173,11 +252,16 @@ class NBTFile {
     NBTFile& operator=(NBTFile&& other);
     NBTFile(NBTFile&& other);
 
+    TagID readID();
+
     template <typename T>
     T readTag();
 
     template <typename T>
-    T readTagArray();
+    T readTag(std::string name);
+
+    template <typename T>
+    T readTagArray(std::string name, int32_t size);
 
     template <typename T>
     ListTag<T> readTagList();
@@ -186,9 +270,11 @@ class NBTFile {
     ListTag<T> readTagList(TagID id, std::string name);
 
     CompoundTag readCompoundTag();
+    CompoundTag readCompoundTag(std::string name);
 
   private:
     std::string readName();
+    int32_t readSize();
     std::ifstream file;
 };
 
