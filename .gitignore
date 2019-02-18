@@ -38,7 +38,7 @@ nbt_dump
 # Autotools
 # http://www.gnu.org/software/automake
 
-Makefile.in
+/Makefile.in
 Makefile
 /ar-lib
 /mdate-sh
