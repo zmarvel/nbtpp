@@ -65,19 +65,14 @@ struct Tag : TagBase {
 };
 
 
-//using EndTag = Tag<TagID::END, void>;
-//template<>
-//class Tag<TagID::END, void> { };
-
 // don't inherit from Tag<id, T> to avoid unnecessary members
 class EndTag : TagBase {
   public:
+    typedef void type;
     explicit EndTag() { }
     ~EndTag() = default;
 };
 
-// can't do this because Tag has a `value` member that cannot inhabit `void`
-//class EndTag : Tag<TagID::END, void> { };
 
 using ByteTag = Tag<TagID::BYTE, int8_t>;
 using ShortTag = Tag<TagID::SHORT, int16_t>;
@@ -87,44 +82,27 @@ using FloatTag = Tag<TagID::FLOAT, float>;
 using DoubleTag = Tag<TagID::DOUBLE, double>;
 
 
-// can't do this because of the additional `size` field
-//template <TagID id, typename T>
-//using ArrayTag = Tag<id, std::unique_ptr<std::vector<T>>>;
-
-//template <TagID id, typename T>
-//struct ArrayTag : public Tag<id, std::unique_ptr<std::vector<T>>> {
-//  typedef memberType T;
-//  ArrayTag(std::string name, std::unique_ptr<std::vector<T>>);
-//  int32_t size;
-//};
-
-//using ByteArrayTag = ArrayTag<TagID::BYTE_ARRAY, int8_t>;
-//using IntArrayTag = ArrayTag<TagID::INT_ARRAY, int32_t>;
-//using LongArrayTag = ArrayTag<TagID::LONG_ARRAY, int64_t>;
 using ByteArrayTag = Tag<TagID::BYTE_ARRAY, std::unique_ptr<std::vector<int8_t>>>;
 using IntArrayTag = Tag<TagID::INT_ARRAY, std::unique_ptr<std::vector<int32_t>>>;
 using LongArrayTag = Tag<TagID::LONG_ARRAY, std::unique_ptr<std::vector<int64_t>>>;
 
 using StringTag = Tag<TagID::STRING, std::unique_ptr<std::string>>;
 
-// Could I constrain T to Tag<id, T>??
-//template <typename T>
-//class ArrayTag {
-//  std::string name;
-//  std::vector<T> values;
-//};
-
 
 template <typename T>
 class ListTag : public Tag<TagID::LIST, std::unique_ptr<std::vector<typename T::type>>> {
   public:
+    // Due to unique_ptr attribute, there will be no implicit copy operator
     explicit ListTag(std::string name, int32_t size) :
       Tag<TagID::LIST, std::unique_ptr<std::vector<typename T::type>>>
         (name, std::move(std::make_unique<std::vector<typename T::type>>(size))),
-      size{size} { }
+      size{size},
+      curr{0}
+    { }
 
     void push_back(T tag) {
-      (this->value)->push_back(std::move(tag.value));
+      (this->value)->at(curr) = std::move(tag.value);
+      curr++;
     }
 
     constexpr TagID getID() {
@@ -132,8 +110,10 @@ class ListTag : public Tag<TagID::LIST, std::unique_ptr<std::vector<typename T::
     }
 
     int32_t size;
-};
 
+  private:
+    int32_t curr;
+};
 
 template <>
 class ListTag<EndTag> : public TagBase {
@@ -155,21 +135,7 @@ class ListTag<EndTag> : public TagBase {
 };
 
 
-// How can we store different types of values without using void*?
 class CompoundTag : TagBase {
-  // Append `_v` because a lot of names collide with keywords...
-  //union {
-  //  ByteTag::type vByte;
-  //  ShortTag::type vShort;
-  //  IntTag::type vInt;
-  //  LongTag::type vLong;
-  //  FloatTag::type vFloat;
-  //  DoubleTag::type vDouble;
-
-  //  ByteArrayTag::type vByteArray;
-  //  IntArrayTag::type vIntArray;
-  //  LongArrayTag::type vLongArray;
-  //} Value;
   public:
     typedef TagBase type;
     CompoundTag() :
@@ -189,6 +155,7 @@ class CompoundTag : TagBase {
     std::string name;
 
   private:
+    // TODO unique_ptr
     std::vector<TagID> ids;
     std::vector<TagBase> value;
 };
@@ -198,9 +165,10 @@ class CompoundTag : TagBase {
 template <>
 class ListTag<CompoundTag> : public Tag<TagID::LIST, std::unique_ptr<std::vector<CompoundTag>>> {
   public:
+    // Due to unique_ptr member, there will be no implicit copy constructor
     explicit ListTag(std::string name, TagID memberID, int32_t size) :
       Tag<TagID::LIST, std::unique_ptr<std::vector<CompoundTag>>>
-        (name, std::move(std::make_unique<std::vector<CompoundTag>>(size))),
+        (name, std::make_unique<std::vector<CompoundTag>>(size)),
       memberID{memberID},
       size{size},
       tail{0}
@@ -226,13 +194,10 @@ class NBTTagException : public std::exception {
       id{id}, why{why}
     { }
 
-    virtual const char* what()
+    virtual const char* what() const noexcept
     {
-      //std::string expl = why + ": " + std::to_string(static_cast<int>(id));
-      //return expl.c_str();
-      why.append(": ");
-      why.append(std::to_string(static_cast<int>(id)));
-      return why.c_str();
+      std::string expl = why + ": " + std::to_string(static_cast<int>(id));
+      return expl.c_str();
     }
 
     TagID id;
@@ -249,8 +214,13 @@ class NBTFile {
     NBTFile(NBTFile& other) = delete;
 
     // only move
-    NBTFile& operator=(NBTFile&& other);
-    NBTFile(NBTFile&& other);
+    NBTFile& operator=(NBTFile&& other) {
+      file.swap(other.file);
+      return *this;
+    }
+    NBTFile(NBTFile&& other) {
+      std::swap(file, other.file);
+    }
 
     TagID readID();
 
@@ -274,6 +244,7 @@ class NBTFile {
 
   private:
     std::string readName();
+    int16_t readListSize();
     int32_t readSize();
     std::ifstream file;
 };

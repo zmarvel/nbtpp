@@ -63,16 +63,6 @@ static inline uint64_t swap64(uint64_t x) {
 
 
 
-NBTFile& NBTFile::operator=(NBTFile&& other) {
-  file.swap(other.file);
-  return *this;
-}
-
-NBTFile::NBTFile(NBTFile&& other) {
-  std::swap(file, other.file);
-}
-
-
 template<>
 ByteTag::type ByteTag::ftoh(ByteTag::type unswapped) {
   return unswapped;
@@ -203,6 +193,12 @@ int32_t NBTFile::readSize() {
   return swap32(size);
 }
 
+int16_t NBTFile::readListSize() {
+  int16_t size;
+  file.read(reinterpret_cast<char*>(&size), sizeof(size));
+  return swap16(size);
+}
+
 template <typename T>
 T NBTFile::readTag(std::string name) {
   typename T::type value;
@@ -292,7 +288,7 @@ T NBTFile::readTagArray(std::string name, int32_t size) {
 
 template <typename T>
 ListTag<T> NBTFile::readTagList(TagID id, std::string name) {
-  int32_t size = readSize();
+  int16_t size = readListSize();
   ListTag<T> list{name, size};
   for (int i = 0; i < size; i++) {
     list.push_back(readTag<T>(""));
@@ -318,7 +314,6 @@ template ListTag<ByteArrayTag> NBTFile::readTagList<ByteArrayTag>();
 template ListTag<IntArrayTag> NBTFile::readTagList<IntArrayTag>();
 template ListTag<LongArrayTag> NBTFile::readTagList<LongArrayTag>();
 template ListTag<StringTag> NBTFile::readTagList<StringTag>();
-template ListTag<EndTag> NBTFile::readTagList<EndTag>();
 
 template<>
 ListTag<CompoundTag> NBTFile::readTagList<CompoundTag>(TagID id, std::string name) {
