@@ -133,7 +133,7 @@ TEST_CASE("Array type byte-swaps", "[array]") {
       std::unique_ptr<std::vector<int8_t>> upVec =
         std::make_unique<std::vector<int8_t>>(vec);
       std::unique_ptr<std::vector<int8_t>> upOutVec =
-        std::move(ByteArrayTag::ftoh(std::move(upVec)));
+        ByteArrayTag::ftoh(std::move(upVec));
       REQUIRE(*upOutVec == expVec);
     }
     {
@@ -146,7 +146,7 @@ TEST_CASE("Array type byte-swaps", "[array]") {
       std::unique_ptr<std::vector<int32_t>> upVec =
         std::make_unique<std::vector<int32_t>>(vec);
       std::unique_ptr<std::vector<int32_t>> upOutVec =
-        std::move(IntArrayTag::ftoh(std::move(upVec)));
+        IntArrayTag::ftoh(std::move(upVec));
       REQUIRE(*upOutVec == expVec);
     }
     {
@@ -160,7 +160,7 @@ TEST_CASE("Array type byte-swaps", "[array]") {
       std::unique_ptr<std::vector<int64_t>> upVec =
         std::make_unique<std::vector<int64_t>>(vec);
       std::unique_ptr<std::vector<int64_t>> upOutVec =
-        std::move(LongArrayTag::ftoh(std::move(upVec)));
+        LongArrayTag::ftoh(std::move(upVec));
       REQUIRE(*upOutVec == expVec);
     }
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
@@ -207,7 +207,7 @@ TEST_CASE("Array type byte-swaps", "[array]") {
       std::unique_ptr<std::vector<int8_t>> upVec =
         std::make_unique<std::vector<int8_t>>(vec);
       std::unique_ptr<std::vector<int8_t>> upOutVec =
-        std::move(ByteArrayTag::htof(std::move(upVec)));
+        ByteArrayTag::htof(std::move(upVec));
       REQUIRE(*upOutVec == expVec);
     }
     {
@@ -220,7 +220,7 @@ TEST_CASE("Array type byte-swaps", "[array]") {
       std::unique_ptr<std::vector<int32_t>> upVec =
         std::make_unique<std::vector<int32_t>>(vec);
       std::unique_ptr<std::vector<int32_t>> upOutVec =
-        std::move(IntArrayTag::htof(std::move(upVec)));
+        IntArrayTag::htof(std::move(upVec));
       REQUIRE(*upOutVec == expVec);
     }
     {
@@ -234,7 +234,7 @@ TEST_CASE("Array type byte-swaps", "[array]") {
       std::unique_ptr<std::vector<int64_t>> upVec =
         std::make_unique<std::vector<int64_t>>(vec);
       std::unique_ptr<std::vector<int64_t>> upOutVec =
-        std::move(LongArrayTag::htof(std::move(upVec)));
+        LongArrayTag::htof(std::move(upVec));
       REQUIRE(*upOutVec == expVec);
     }
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
