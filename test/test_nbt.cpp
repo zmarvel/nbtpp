@@ -27,7 +27,7 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       NBTFile file{"./test/data/end_tag.dat"};
       TagID id = file.readID();
       REQUIRE(id == TagID::END);
-      EndTag tag = file.readTag<EndTag>();
+      file.readTag<EndTag>();
     }
     {
       NBTFile file{"./test/data/byte_tag.dat"};
@@ -136,9 +136,6 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       NBTFile file{"./test/data/list_byte_tag.dat"};
       TagID id = file.readID();
       REQUIRE(id == TagID::LIST);
-      // works
-      //ListTag<ByteTag> tag = file.readTagList<ByteTag>(TagID::LIST, "");
-      // doesn't work
       ListTag<ByteTag> tag = file.readTagList<ByteTag>();
       REQUIRE(tag.name == "listof byte tag");
       std::vector<int8_t> expected{
@@ -146,20 +143,20 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       };
       REQUIRE(*tag.value == expected);
     }
-    //{
-    //  NBTFile file{"./test/data/list_string_tag.dat"};
-    //  TagID id = file.readID();
-    //  REQUIRE(id == TagID::LIST);
-    //  ListTag<StringTag> tag = file.readTagList<StringTag>();
-    //  REQUIRE(tag.name == "list tag");
-    //  std::vector<std::string> expected{
-    //    "Roses are red",
-    //    "Violets are blue",
-    //    "C++ is a language for me and you"
-    //  };
-    //  for (size_t i = 0; i < expected.size(); i++) {
-    //    REQUIRE(*(tag.value->at(i)) == expected.at(i));
-    //  }
-    //}
+    {
+      NBTFile file{"./test/data/list_string_tag.dat"};
+      TagID id = file.readID();
+      REQUIRE(id == TagID::LIST);
+      ListTag<StringTag> tag = file.readTagList<StringTag>();
+      REQUIRE(tag.name == "list tag");
+      std::vector<std::string> expected{
+        "Roses are red",
+        "Violets are blue",
+        "C++ is a language for me and you"
+      };
+      for (size_t i = 0; i < expected.size(); i++) {
+        REQUIRE(*(tag.value->at(i)) == expected.at(i));
+      }
+    }
   }
 }
