@@ -80,7 +80,7 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
   }
 
   SECTION("Files with complex tags") {
-    {
+    { // ByteArrayTag
       NBTFile file{"./test/data/byte_array_tag.dat"};
       TagID id = file.readID();
       REQUIRE(id == TagID::BYTE_ARRAY);
@@ -91,7 +91,7 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       };
       REQUIRE(*tag.value == expected);
     }
-    {
+    { // IntArrayTag
       NBTFile file{"./test/data/int_array_tag.dat"};
       TagID id = file.readID();
       REQUIRE(id == TagID::INT_ARRAY);
@@ -106,7 +106,7 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       };
       REQUIRE(*tag.value == expected);
     }
-    {
+    { // LongArrayTag
       NBTFile file{"./test/data/long_array_tag.dat"};
       TagID id = file.readID();
       REQUIRE(id == TagID::LONG_ARRAY);
@@ -123,7 +123,7 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       };
       REQUIRE(*tag.value == expected);
     }
-    {
+    { // StringTag
       NBTFile file{"./test/data/string_tag.dat"};
       TagID id = file.readID();
       REQUIRE(id == TagID::STRING);
@@ -132,7 +132,7 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       std::string expected{"The quick brown fox jumped over the lazy dog"};
       REQUIRE(*tag.value == expected);
     }
-    {
+    { // ListTag<ByteTag>
       NBTFile file{"./test/data/list_byte_tag.dat"};
       TagID id = file.readID();
       REQUIRE(id == TagID::LIST);
@@ -143,7 +143,7 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       };
       REQUIRE(*tag.value == expected);
     }
-    {
+    { // ListTag<StringTag>
       NBTFile file{"./test/data/list_string_tag.dat"};
       TagID id = file.readID();
       REQUIRE(id == TagID::LIST);
@@ -158,5 +158,48 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
         REQUIRE(*(tag.value->at(i)) == expected.at(i));
       }
     }
+    { // CompoundTag
+      /*
+       * CompoundTag
+       * |
+       * |-- StringTag
+       * |-- LongTag
+       * |-- IntArrayTag
+       * |-- ListTag<DoubleTag> (2)
+       */
+      NBTFile file{"./test/data/compound_tag.dat"};
+      TagID id = file.readID();
+      REQUIRE(id == TagID::COMPOUND);
+      CompoundTag tag = file.readCompoundTag("");
+      REQUIRE(tag.idAt(0) == TagID::STRING);
+      StringTag child = tag.at<StringTag>(0);
+      REQUIRE(child.name  == "string child");
+      std::cout << *child.value << std::endl;
+      REQUIRE(*child.value == "Hello world");
+    }
+    if (false) {
+      /*
+       * ListTag
+       * |
+       * |-- CompoundTag
+       * |   |-- StringTag
+       * |   |-- LongArrayTag
+       * |
+       * |-- CompoundTag
+       * |   |-- IntTag
+       * |   |-- ShortTag
+       * |   |-- ShortTag
+       *
+       */
+      NBTFile file{"./test/data/list_compound_tag.dat"};
+      TagID id = file.readID();
+      REQUIRE(id == TagID::LIST);
+      ListTag<CompoundTag> tag = file.readTagList<CompoundTag>();
+    }
   }
+    // TODO
+    // Test bad paths:
+    // - File doesn't exist
+    // - File ends unexpectedly (e.g. list with length 2 and 0 real members)
+    // - CompoundTag with no EndTag (falls into "file ends unexpectedly")
 }

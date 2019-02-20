@@ -13,6 +13,7 @@ DATS = \
        string_tag.dat \
        list_byte_tag.dat \
        list_string_tag.dat \
+       list_compound_tag.dat \
        compound_tag.dat \
 
 HEXS = $(DATS:.dat=.hex)
