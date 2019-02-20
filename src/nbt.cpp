@@ -24,10 +24,15 @@
 
 NBTFile::NBTFile(std::string filename)
   : file{filename, std::ios_base::in | std::ios_base::binary}
-{ }
+{
+  if (!file.is_open()) {
+    std::cerr << "ERR: NBTFile is not open" << std::endl;
+  }
+}
 
 NBTFile::~NBTFile() {
   // file is automatically closed
+  file.close();
 }
 
 static inline uint16_t swap16(uint16_t x) {
@@ -173,7 +178,6 @@ LongArrayTag::type LongArrayTag::htof(LongArrayTag::type unswapped) {
 TagID NBTFile::readID() {
   char rawID;
   file.read(&rawID, sizeof(char)); 
-  std::cout << "DBG read id " << std::to_string(static_cast<unsigned int>(static_cast<TagID>(rawID))) << std::endl;
   return static_cast<TagID>(rawID);
 }
 
@@ -230,7 +234,7 @@ StringTag NBTFile::readTag<StringTag>(std::string name) {
   length = swap16(length);
   std::string str(static_cast<size_t>(length), static_cast<char>('\0'));
   file.read(&str[0], length*sizeof(char));
-  return StringTag{name, std::make_unique<std::string>(str)};
+  return StringTag{name, std::unique_ptr<std::string>{new std::string{str}}};
 }
 
 template <>
@@ -322,8 +326,10 @@ ListTag<CompoundTag> NBTFile::readTagList<CompoundTag>(TagID id, std::string nam
   for (int i = 0; i < size; i++) {
     list.push_back(readCompoundTag(""));
   }
-  return list;
+  return std::move(list);
 }
+
+template ListTag<CompoundTag> NBTFile::readTagList<CompoundTag>();
 
 template<>
 ListTag<EndTag> NBTFile::readTagList<EndTag>(TagID id, std::string name) {
@@ -332,7 +338,108 @@ ListTag<EndTag> NBTFile::readTagList<EndTag>(TagID id, std::string name) {
   for (int i = 0; i < size; i++) {
     list.push_back(readTag<EndTag>());
   }
-  return list;
+  return std::move(list);
+}
+
+void ListTag<CompoundTag>::push_back(CompoundTag tag) {
+  (*this->value)[tail] = std::move(tag);
+}
+
+
+static void deleteListTag(void *pTag) {
+  ListTag<ByteTag> *pFakeList = reinterpret_cast<ListTag<ByteTag>*>(pTag);
+  TagID realID = pFakeList->getChildID();
+  switch (realID) {
+    case TagID::COMPOUND:
+      delete reinterpret_cast<ListTag<CompoundTag>*>(pTag);
+      break;
+    case TagID::END:
+      delete reinterpret_cast<ListTag<EndTag>*>(pTag);
+      break;
+    case TagID::BYTE:
+      delete reinterpret_cast<ListTag<ByteTag>*>(pTag);
+      break;
+    case TagID::SHORT:
+      delete reinterpret_cast<ListTag<ShortTag>*>(pTag);
+      break;
+    case TagID::INT:
+      delete reinterpret_cast<ListTag<IntTag>*>(pTag);
+      break;
+    case TagID::LONG:
+      delete reinterpret_cast<ListTag<LongTag>*>(pTag);
+      break;
+    case TagID::FLOAT:
+      delete reinterpret_cast<ListTag<FloatTag>*>(pTag);
+      break;
+    case TagID::DOUBLE:
+      delete reinterpret_cast<ListTag<DoubleTag>*>(pTag);
+      break;
+    case TagID::BYTE_ARRAY:
+      delete reinterpret_cast<ListTag<ByteArrayTag>*>(pTag);
+      break;
+    case TagID::STRING:
+      delete reinterpret_cast<ListTag<StringTag>*>(pTag);
+      break;
+    default:
+      delete reinterpret_cast<ListTag<StringTag>*>(pTag);
+    case TagID::LIST:
+      // TODO
+      break;
+    case TagID::INT_ARRAY:
+      delete reinterpret_cast<ListTag<IntArrayTag>*>(pTag);
+      break;
+    case TagID::LONG_ARRAY:
+      delete reinterpret_cast<ListTag<LongArrayTag>*>(pTag);
+      break;
+  }
+}
+
+CompoundTag::~CompoundTag() {
+  for (size_t i = 0; i < ids.size(); i++) {
+    void *pTag = value.at(i);
+    switch (ids.at(i)) {
+      case TagID::END:
+        delete reinterpret_cast<EndTag*>(pTag);
+        break;
+      case TagID::BYTE:
+        delete reinterpret_cast<ByteTag*>(pTag);
+        break;
+      case TagID::SHORT:
+        delete reinterpret_cast<ShortTag*>(pTag);
+        break;
+      case TagID::INT:
+        delete reinterpret_cast<IntTag*>(pTag);
+        break;
+      case TagID::LONG:
+        delete reinterpret_cast<LongTag*>(pTag);
+        break;
+      case TagID::FLOAT:
+        delete reinterpret_cast<FloatTag*>(pTag);
+        break;
+      case TagID::DOUBLE:
+        delete reinterpret_cast<DoubleTag*>(pTag);
+        break;
+      case TagID::BYTE_ARRAY:
+        delete reinterpret_cast<ByteArrayTag*>(pTag);
+        break;
+      case TagID::STRING:
+        delete reinterpret_cast<StringTag*>(pTag);
+        break;
+      case TagID::LIST:
+        // TODO
+        deleteListTag(reinterpret_cast<ListTag<ByteTag>*>(pTag));
+        break;
+      case TagID::COMPOUND:
+        delete reinterpret_cast<CompoundTag*>(pTag);
+        break;
+      case TagID::INT_ARRAY:
+        delete reinterpret_cast<IntArrayTag*>(pTag);
+        break;
+      case TagID::LONG_ARRAY:
+        delete reinterpret_cast<LongArrayTag*>(pTag);
+        break;
+    }
+  }
 }
 
 

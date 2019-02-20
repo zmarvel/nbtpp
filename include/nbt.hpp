@@ -27,6 +27,7 @@
 #include <fstream>
 #include <exception>
 #include <iostream>
+#include <cstring>
 
 
 enum class TagID {
@@ -47,6 +48,7 @@ enum class TagID {
 
 class TagBase { };
 
+
 template <TagID id, typename T>
 struct Tag : TagBase {
   public:
@@ -64,6 +66,9 @@ struct Tag : TagBase {
     }
 };
 
+
+template <typename T>
+constexpr TagID getTagID();
 
 // don't inherit from Tag<id, T> to avoid unnecessary members
 class EndTag : TagBase {
@@ -89,6 +94,7 @@ using LongArrayTag = Tag<TagID::LONG_ARRAY, std::unique_ptr<std::vector<int64_t>
 using StringTag = Tag<TagID::STRING, std::unique_ptr<std::string>>;
 
 
+
 template <typename T>
 class ListTag : public Tag<TagID::LIST, std::unique_ptr<std::vector<typename T::type>>> {
   public:
@@ -100,13 +106,21 @@ class ListTag : public Tag<TagID::LIST, std::unique_ptr<std::vector<typename T::
       curr{0}
     { }
 
+    virtual TagID getChildID() {
+      return getTagID<T>();
+    }
+
+    constexpr TagID getID() {
+      return TagID::LIST;
+    }
+
     void push_back(T tag) {
       (this->value)->at(curr) = std::move(tag.value);
       curr++;
     }
 
-    constexpr TagID getID() {
-      return TagID::LIST;
+    T at(size_t i) {
+      return (this->value)->at(i);
     }
 
     int32_t size;
@@ -121,7 +135,10 @@ class ListTag<EndTag> : public TagBase {
     explicit ListTag(std::string name, int32_t size) :
       name{name},
       size{size} { }
-    ~ListTag() = default;
+
+    virtual TagID getChildID() {
+      return TagID::END;
+    }
 
     template<typename T>
     ListTag<T> push_back(T tag) {
@@ -134,33 +151,12 @@ class ListTag<EndTag> : public TagBase {
     int32_t size;
 };
 
+class CompoundTag;
 
-class CompoundTag : TagBase {
-  public:
-    typedef TagBase type;
-    CompoundTag() :
-      name{}
-    { }
-
-    CompoundTag(std::string name) :
-      name{name}
-    { }
-
-    template <typename T>
-    void push_back(TagID id, T tag) {
-      ids.push_back(id);
-      value.push_back(tag);
-    }
-
-    std::string name;
-
-  private:
-    // TODO unique_ptr
-    std::vector<TagID> ids;
-    std::vector<TagBase> value;
-};
-
-
+template <>
+constexpr TagID getTagID<CompoundTag>() {
+  return TagID::COMPOUND;
+}
 
 template <>
 class ListTag<CompoundTag> : public Tag<TagID::LIST, std::unique_ptr<std::vector<CompoundTag>>> {
@@ -174,8 +170,14 @@ class ListTag<CompoundTag> : public Tag<TagID::LIST, std::unique_ptr<std::vector
       tail{0}
       { }
 
-    void push_back(CompoundTag tag) {
-      (*this->value)[tail] = std::move(tag);
+    virtual TagID getChildID() {
+      return getTagID<CompoundTag>();
+    }
+
+    void push_back(CompoundTag tag);
+
+    CompoundTag& at(size_t i) {
+      return this->value->at(i);
     }
 
     TagID memberID;
@@ -184,6 +186,116 @@ class ListTag<CompoundTag> : public Tag<TagID::LIST, std::unique_ptr<std::vector
   private:
     size_t tail;
 };
+
+
+
+
+
+
+
+class CompoundTag : TagBase {
+  public:
+    typedef CompoundTag type;
+    CompoundTag() :
+      name{}
+    { }
+
+    CompoundTag(std::string name) :
+      name{name}
+    { }
+
+    ~CompoundTag();
+
+    template <typename T>
+    void push_back(TagID id, T tag) {
+      ids.push_back(id);
+      T *tagCopy = new T{std::move(tag)};
+      value.push_back(tagCopy);
+    }
+
+    template <typename T>
+    T at(size_t i) {
+      return std::move(*reinterpret_cast<T*>(value.at(i)));
+    }
+
+    TagID idAt(size_t i) {
+      return ids.at(i);
+    }
+
+    std::string name;
+
+  private:
+    // TODO unique_ptr
+    std::vector<TagID> ids;
+    std::vector<void*> value;
+};
+
+
+
+
+
+template <>
+constexpr TagID getTagID<EndTag>() {
+  return TagID::END;
+}
+
+template <>
+constexpr TagID getTagID<ByteTag>() {
+  return TagID::BYTE;
+}
+
+template <>
+constexpr TagID getTagID<ShortTag>() {
+  return TagID::SHORT;
+}
+
+template <>
+constexpr TagID getTagID<IntTag>() {
+  return TagID::INT;
+}
+
+template <>
+constexpr TagID getTagID<LongTag>() {
+  return TagID::LONG;
+}
+
+template <>
+constexpr TagID getTagID<FloatTag>() {
+  return TagID::FLOAT;
+}
+
+template <>
+constexpr TagID getTagID<DoubleTag>() {
+  return TagID::DOUBLE;
+}
+
+template <>
+constexpr TagID getTagID<ByteArrayTag>() {
+  return TagID::BYTE_ARRAY;
+}
+
+template <>
+constexpr TagID getTagID<IntArrayTag>() {
+  return TagID::INT_ARRAY;
+}
+
+template <>
+constexpr TagID getTagID<LongArrayTag>() {
+  return TagID::LONG_ARRAY;
+}
+
+// TODO
+//template <typename T>
+//constexpr TagID getTagID<ListTag<T>>() {
+//  return TagID::LIST;
+//}
+
+template <>
+constexpr TagID getTagID<StringTag>() {
+  return TagID::STRING;
+}
+
+
 
 
 
