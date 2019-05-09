@@ -34,6 +34,7 @@
 *.out
 *.app
 nbt_dump
+test_nbt
 
 # Autotools
 # http://www.gnu.org/software/automake

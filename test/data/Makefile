@@ -23,21 +23,6 @@ check: $(DATS)
 %.dat: %.hex
 	xxd -r -p $< $@
 
-.PHONY: clean mostlyclean distclean maintainer-clean
-
+.PHONY: clean
 clean:
 	rm -f $(DATS)
-
-mostlyclean: clean
-
-distclean: clean
-
-maintainer-clean: clean
-
-EMPTY_AUTOMAKE_TARGETS = all distdir install install-data install-exec \
-			 uninstall install-dvi install-html install-info \
-			 install-ps install-pdf installdirs installcheck \
-			 dvi pdf ps info html tags ctags
-.PHONY: $(EMPTY_AUTOMAKE_TARGETS)
-$(EMPTY_AUTOMAKE_TARGETS):
-
