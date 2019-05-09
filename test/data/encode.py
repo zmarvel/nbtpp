@@ -3,11 +3,11 @@
 import struct
 
 def print_hex(seq):
-    print(' '.join('{:x}'.format(c) for c in bytes(seq)))
+    print(' '.join('{:x}'.format(c) for c in seq))
 
 def enc_str(s):
     print(len(s))
-    print_hex(s)
+    print_hex(list(map(ord, s)))
 
 def enc_double(d):
     print_hex(struct.pack('>d', d))
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.string:
-        enc_str(str(args.value))
+        enc_str(args.value)
     elif args.float:
         enc_float(float(args.value))
     elif args.double:

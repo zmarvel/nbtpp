@@ -123,6 +123,10 @@ class ListTag : public Tag<TagID::LIST, std::unique_ptr<std::vector<typename T::
       return (this->value)->at(i);
     }
 
+    int32_t getSize() const {
+      return size;
+    }
+
     int32_t size;
 
   private:
@@ -178,6 +182,10 @@ class ListTag<CompoundTag> : public Tag<TagID::LIST, std::unique_ptr<std::vector
 
     CompoundTag& at(size_t i) {
       return this->value->at(i);
+    }
+
+    int32_t getSize() const {
+      return size;
     }
 
     TagID memberID;

@@ -1,0 +1,43 @@
+
+DATS = \
+       end_tag.dat \
+       byte_tag.dat \
+       short_tag.dat \
+       int_tag.dat \
+       long_tag.dat \
+       float_tag.dat \
+       double_tag.dat \
+       byte_array_tag.dat \
+       int_array_tag.dat \
+       long_array_tag.dat \
+       string_tag.dat \
+       list_byte_tag.dat \
+       list_string_tag.dat \
+       list_compound_tag.dat \
+       compound_tag.dat \
+
+HEXS = $(DATS:.dat=.hex)
+
+check: $(DATS)
+
+%.dat: %.hex
+	xxd -r -p $< $@
+
+.PHONY: clean mostlyclean distclean maintainer-clean
+
+clean:
+	rm -f $(DATS)
+
+mostlyclean: clean
+
+distclean: clean
+
+maintainer-clean: clean
+
+EMPTY_AUTOMAKE_TARGETS = all distdir install install-data install-exec \
+			 uninstall install-dvi install-html install-info \
+			 install-ps install-pdf installdirs installcheck \
+			 dvi pdf ps info html tags ctags
+.PHONY: $(EMPTY_AUTOMAKE_TARGETS)
+$(EMPTY_AUTOMAKE_TARGETS):
+

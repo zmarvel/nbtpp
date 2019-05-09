@@ -177,7 +177,7 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       std::cout << *child.value << std::endl;
       REQUIRE(*child.value == "Hello world");
     }
-    if (false) {
+    {
       /*
        * ListTag
        * |
@@ -195,6 +195,10 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       TagID id = file.readID();
       REQUIRE(id == TagID::LIST);
       ListTag<CompoundTag> tag = file.readTagList<CompoundTag>();
+      REQUIRE(tag.name == "listof compound");
+      REQUIRE(tag.getSize() == 2);
+      //CompoundTag child0 = tag.at(0);
+      //REQUIRE(child0.idAt(0) == TagID::STRING);
     }
   }
     // TODO

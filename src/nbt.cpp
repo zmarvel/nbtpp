@@ -175,6 +175,9 @@ LongArrayTag::type LongArrayTag::htof(LongArrayTag::type unswapped) {
 }
 
 
+
+// -----------------------------------------------------------------------------
+
 TagID NBTFile::readID() {
   char rawID;
   file.read(&rawID, sizeof(char)); 
@@ -329,8 +332,12 @@ ListTag<CompoundTag> NBTFile::readTagList<CompoundTag>(TagID id, std::string nam
   return std::move(list);
 }
 
-template ListTag<CompoundTag> NBTFile::readTagList<CompoundTag>();
-
+template<>
+ListTag<CompoundTag> NBTFile::readTagList<CompoundTag>() {
+  std::string name = readName();
+  TagID id = readID();
+  return readTagList<CompoundTag>(id, name);
+}
 template<>
 ListTag<EndTag> NBTFile::readTagList<EndTag>(TagID id, std::string name) {
   int32_t size = readSize();
