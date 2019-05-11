@@ -22,10 +22,10 @@ int main(int argc, char* argv[]) {
 
   NBTFile input{argv[1]};
   // Assume the first ID identifies a Compound tag
-  TagID id = input.readID();
+  //TagID id = input.readID();
 
   try {
-    ListTag<CompoundTag> root = input.readTagList<CompoundTag>();
+    ListTag<CompoundTag> root{input.readTagList<CompoundTag>()};
   }
   catch (NBTTagException& e) {
     std::cerr << "NBTTagException: " << e.what() << std::endl;

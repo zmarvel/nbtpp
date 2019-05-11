@@ -80,7 +80,7 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
   }
 
   SECTION("Files with complex tags") {
-    { // ByteArrayTag
+    SECTION("ByteArrayTag") {
       NBTFile file{"./test/data/byte_array_tag.dat"};
       TagID id = file.readID();
       REQUIRE(id == TagID::BYTE_ARRAY);
@@ -91,7 +91,7 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       };
       REQUIRE(*tag.value == expected);
     }
-    { // IntArrayTag
+    SECTION("IntArrayTag") {
       NBTFile file{"./test/data/int_array_tag.dat"};
       TagID id = file.readID();
       REQUIRE(id == TagID::INT_ARRAY);
@@ -106,7 +106,7 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       };
       REQUIRE(*tag.value == expected);
     }
-    { // LongArrayTag
+    SECTION("LongArrayTag") {
       NBTFile file{"./test/data/long_array_tag.dat"};
       TagID id = file.readID();
       REQUIRE(id == TagID::LONG_ARRAY);
@@ -123,7 +123,7 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       };
       REQUIRE(*tag.value == expected);
     }
-    { // StringTag
+    SECTION("StringTag") {
       NBTFile file{"./test/data/string_tag.dat"};
       TagID id = file.readID();
       REQUIRE(id == TagID::STRING);
@@ -132,7 +132,7 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       std::string expected{"The quick brown fox jumped over the lazy dog"};
       REQUIRE(*tag.value == expected);
     }
-    { // ListTag<ByteTag>
+    SECTION("ListTag<ByteTag>") {
       NBTFile file{"./test/data/list_byte_tag.dat"};
       TagID id = file.readID();
       REQUIRE(id == TagID::LIST);
@@ -143,7 +143,7 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       };
       REQUIRE(*tag.value == expected);
     }
-    { // ListTag<StringTag>
+    SECTION("ListTag<StringTag>") {
       NBTFile file{"./test/data/list_string_tag.dat"};
       TagID id = file.readID();
       REQUIRE(id == TagID::LIST);
@@ -158,7 +158,7 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
         REQUIRE(*(tag.value->at(i)) == expected.at(i));
       }
     }
-    { // CompoundTag
+    SECTION("CompoundTag") {
       /*
        * CompoundTag
        * |
@@ -170,14 +170,15 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       NBTFile file{"./test/data/compound_tag.dat"};
       TagID id = file.readID();
       REQUIRE(id == TagID::COMPOUND);
-      CompoundTag tag = file.readCompoundTag("");
-      REQUIRE(tag.idAt(0) == TagID::STRING);
-      StringTag child = tag.at<StringTag>(0);
+      CompoundTag tag{file.readCompoundTag("")};
+      //REQUIRE(tag.idAt(0) == TagID::STRING);
+      REQUIRE(tag.at(0)->id() == TagID::STRING);
+      StringTag child = std::move(*std::dynamic_pointer_cast<StringTag>(tag.at(0)));
       REQUIRE(child.name  == "string child");
       std::cout << *child.value << std::endl;
       REQUIRE(*child.value == "Hello world");
     }
-    {
+    SECTION("ListTag") {
       /*
        * ListTag
        * |
@@ -197,6 +198,7 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       ListTag<CompoundTag> tag = file.readTagList<CompoundTag>();
       REQUIRE(tag.name == "listof compound");
       REQUIRE(tag.getSize() == 2);
+      // TODO
       //CompoundTag child0 = tag.at(0);
       //REQUIRE(child0.idAt(0) == TagID::STRING);
     }

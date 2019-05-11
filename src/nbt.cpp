@@ -307,7 +307,7 @@ template <typename T>
 ListTag<T> NBTFile::readTagList() {
   std::string name = readName();
   TagID id = readID();
-  return readTagList<T>(id, name);
+  return std::move(readTagList<T>(id, name));
 }
 
 
@@ -329,7 +329,7 @@ ListTag<CompoundTag> NBTFile::readTagList<CompoundTag>(TagID id, std::string nam
   for (int i = 0; i < size; i++) {
     list.push_back(readCompoundTag(""));
   }
-  return std::move(list);
+  return list;
 }
 
 template<>
@@ -338,6 +338,7 @@ ListTag<CompoundTag> NBTFile::readTagList<CompoundTag>() {
   TagID id = readID();
   return readTagList<CompoundTag>(id, name);
 }
+
 template<>
 ListTag<EndTag> NBTFile::readTagList<EndTag>(TagID id, std::string name) {
   int32_t size = readSize();
@@ -345,108 +346,11 @@ ListTag<EndTag> NBTFile::readTagList<EndTag>(TagID id, std::string name) {
   for (int i = 0; i < size; i++) {
     list.push_back(readTag<EndTag>());
   }
-  return std::move(list);
+  return list;
 }
 
 void ListTag<CompoundTag>::push_back(CompoundTag tag) {
-  (*this->value)[tail] = std::move(tag);
-}
-
-
-static void deleteListTag(void *pTag) {
-  ListTag<ByteTag> *pFakeList = reinterpret_cast<ListTag<ByteTag>*>(pTag);
-  TagID realID = pFakeList->getChildID();
-  switch (realID) {
-    case TagID::COMPOUND:
-      delete reinterpret_cast<ListTag<CompoundTag>*>(pTag);
-      break;
-    case TagID::END:
-      delete reinterpret_cast<ListTag<EndTag>*>(pTag);
-      break;
-    case TagID::BYTE:
-      delete reinterpret_cast<ListTag<ByteTag>*>(pTag);
-      break;
-    case TagID::SHORT:
-      delete reinterpret_cast<ListTag<ShortTag>*>(pTag);
-      break;
-    case TagID::INT:
-      delete reinterpret_cast<ListTag<IntTag>*>(pTag);
-      break;
-    case TagID::LONG:
-      delete reinterpret_cast<ListTag<LongTag>*>(pTag);
-      break;
-    case TagID::FLOAT:
-      delete reinterpret_cast<ListTag<FloatTag>*>(pTag);
-      break;
-    case TagID::DOUBLE:
-      delete reinterpret_cast<ListTag<DoubleTag>*>(pTag);
-      break;
-    case TagID::BYTE_ARRAY:
-      delete reinterpret_cast<ListTag<ByteArrayTag>*>(pTag);
-      break;
-    case TagID::STRING:
-      delete reinterpret_cast<ListTag<StringTag>*>(pTag);
-      break;
-    default:
-      delete reinterpret_cast<ListTag<StringTag>*>(pTag);
-    case TagID::LIST:
-      // TODO
-      break;
-    case TagID::INT_ARRAY:
-      delete reinterpret_cast<ListTag<IntArrayTag>*>(pTag);
-      break;
-    case TagID::LONG_ARRAY:
-      delete reinterpret_cast<ListTag<LongArrayTag>*>(pTag);
-      break;
-  }
-}
-
-CompoundTag::~CompoundTag() {
-  for (size_t i = 0; i < ids.size(); i++) {
-    void *pTag = value.at(i);
-    switch (ids.at(i)) {
-      case TagID::END:
-        delete reinterpret_cast<EndTag*>(pTag);
-        break;
-      case TagID::BYTE:
-        delete reinterpret_cast<ByteTag*>(pTag);
-        break;
-      case TagID::SHORT:
-        delete reinterpret_cast<ShortTag*>(pTag);
-        break;
-      case TagID::INT:
-        delete reinterpret_cast<IntTag*>(pTag);
-        break;
-      case TagID::LONG:
-        delete reinterpret_cast<LongTag*>(pTag);
-        break;
-      case TagID::FLOAT:
-        delete reinterpret_cast<FloatTag*>(pTag);
-        break;
-      case TagID::DOUBLE:
-        delete reinterpret_cast<DoubleTag*>(pTag);
-        break;
-      case TagID::BYTE_ARRAY:
-        delete reinterpret_cast<ByteArrayTag*>(pTag);
-        break;
-      case TagID::STRING:
-        delete reinterpret_cast<StringTag*>(pTag);
-        break;
-      case TagID::LIST:
-        // TODO
-        deleteListTag(reinterpret_cast<ListTag<ByteTag>*>(pTag));
-        break;
-      case TagID::COMPOUND:
-        delete reinterpret_cast<CompoundTag*>(pTag);
-        break;
-      case TagID::INT_ARRAY:
-        delete reinterpret_cast<IntArrayTag*>(pTag);
-        break;
-      case TagID::LONG_ARRAY:
-        delete reinterpret_cast<LongArrayTag*>(pTag);
-        break;
-    }
-  }
+  value->push_back(std::move(tag));
 }
 
 
@@ -465,28 +369,28 @@ CompoundTag NBTFile::readCompoundTag(std::string name) {
         end = true;
         break;
       case TagID::BYTE:
-        ct.push_back(id, readTag<ByteTag>());
+        ct.push_back(readTag<ByteTag>());
         break;
       case TagID::SHORT:
-        ct.push_back(id, readTag<ShortTag>());
+        ct.push_back(readTag<ShortTag>());
         break;
       case TagID::INT:
-        ct.push_back(id, readTag<IntTag>());
+        ct.push_back(readTag<IntTag>());
         break;
       case TagID::LONG:
-        ct.push_back(id, readTag<LongTag>());
+        ct.push_back(readTag<LongTag>());
         break;
       case TagID::FLOAT:
-        ct.push_back(id, readTag<FloatTag>());
+        ct.push_back(readTag<FloatTag>());
         break;
       case TagID::DOUBLE:
-        ct.push_back(id, readTag<DoubleTag>());
+        ct.push_back(readTag<DoubleTag>());
         break;
       case TagID::BYTE_ARRAY:
-        ct.push_back(id, readTag<ByteArrayTag>());
+        ct.push_back(readTag<ByteArrayTag>());
         break;
       case TagID::STRING:
-        ct.push_back(id, readTag<StringTag>());
+        ct.push_back(readTag<StringTag>());
         break;
       case TagID::LIST:
         {
@@ -496,31 +400,31 @@ CompoundTag NBTFile::readCompoundTag(std::string name) {
           TagID listID = readID();
           switch (listID) {
             case TagID::END:
-              ct.push_back(id, readTagList<EndTag>(listID, listName));
+              ct.push_back(readTagList<EndTag>(listID, listName));
               break;
             case TagID::BYTE:
-              ct.push_back(id, readTagList<ByteTag>(listID, listName));
+              ct.push_back(readTagList<ByteTag>(listID, listName));
               break;
             case TagID::SHORT:
-              ct.push_back(id, readTagList<ShortTag>(listID, listName));
+              ct.push_back(readTagList<ShortTag>(listID, listName));
               break;
             case TagID::INT:
-              ct.push_back(id, readTagList<IntTag>(listID, listName));
+              ct.push_back(readTagList<IntTag>(listID, listName));
               break;
             case TagID::LONG:
-              ct.push_back(id, readTagList<LongTag>(listID, listName));
+              ct.push_back(readTagList<LongTag>(listID, listName));
               break;
             case TagID::FLOAT:
-              ct.push_back(id, readTagList<FloatTag>(listID, listName));
+              ct.push_back(readTagList<FloatTag>(listID, listName));
               break;
             case TagID::DOUBLE:
-              ct.push_back(id, readTagList<DoubleTag>(listID, listName));
+              ct.push_back(readTagList<DoubleTag>(listID, listName));
               break;
             case TagID::BYTE_ARRAY:
-              ct.push_back(id, readTagList<ByteArrayTag>(listID, listName));
+              ct.push_back(readTagList<ByteArrayTag>(listID, listName));
               break;
             case TagID::STRING:
-              ct.push_back(id, readTagList<StringTag>(listID, listName));
+              ct.push_back(readTagList<StringTag>(listID, listName));
               break;
             //case TagID::LIST:
             //  //ct.push_back(id, readTag<ListTag>());
@@ -529,13 +433,13 @@ CompoundTag NBTFile::readCompoundTag(std::string name) {
             //  break;
             case TagID::COMPOUND:
               // Unexpected
-              ct.push_back(id, readTagList<CompoundTag>(listID, listName));
+              ct.push_back(readTagList<CompoundTag>(listID, listName));
               break;
             case TagID::INT_ARRAY:
-              ct.push_back(id, readTagList<IntArrayTag>(listID, listName));
+              ct.push_back(readTagList<IntArrayTag>(listID, listName));
               break;
             case TagID::LONG_ARRAY:
-              ct.push_back(id, readTagList<LongArrayTag>(listID, listName));
+              ct.push_back(readTagList<LongArrayTag>(listID, listName));
               break;
             default:
               throw NBTTagException(listID, "Unrecognized tag");
@@ -544,13 +448,13 @@ CompoundTag NBTFile::readCompoundTag(std::string name) {
         }
         break;
       case TagID::COMPOUND:
-        ct.push_back(id, readCompoundTag());
+        ct.push_back(readCompoundTag());
         break;
       case TagID::INT_ARRAY:
-        ct.push_back(id, readTag<IntArrayTag>());
+        ct.push_back(readTag<IntArrayTag>());
         break;
       case TagID::LONG_ARRAY:
-        ct.push_back(id, readTag<LongArrayTag>());
+        ct.push_back(readTag<LongArrayTag>());
         break;
       default:
         throw NBTTagException(id, "Unrecognized tag");

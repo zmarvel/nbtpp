@@ -46,14 +46,25 @@ enum class TagID {
   LONG_ARRAY = 12,
 };
 
-class TagBase { };
+struct TagBase {
+  TagBase() { }
+  virtual ~TagBase() { }
+  virtual TagID id() const = 0;
+};
 
 
-template <TagID id, typename T>
+template <TagID tagID, typename T>
 struct Tag : TagBase {
   public:
     typedef T type;
     Tag(std::string name, T value) : name{name}, value{std::move(value)} { }
+    Tag(Tag&& other) : name{other.name}, value{std::move(other.value)} { }
+    Tag& operator=(Tag&& other) {
+      name = other.name;
+      value = std::move(other.value);
+      return *this;
+    }
+    virtual ~Tag() { }
 
     std::string name;
     T value;
@@ -61,8 +72,8 @@ struct Tag : TagBase {
     static T ftoh(T unswapped);
     static T htof(T unswapped);
 
-    constexpr TagID getID() {
-      return id;
+    virtual TagID id() const {
+      return tagID;
     }
 };
 
@@ -74,8 +85,14 @@ constexpr TagID getTagID();
 class EndTag : TagBase {
   public:
     typedef void type;
+
     explicit EndTag() { }
-    ~EndTag() = default;
+
+    virtual ~EndTag() { }
+
+    virtual TagID id() const override {
+      return TagID::END;
+    }
 };
 
 
@@ -106,11 +123,23 @@ class ListTag : public Tag<TagID::LIST, std::unique_ptr<std::vector<typename T::
       curr{0}
     { }
 
+    ListTag(ListTag&& other) :
+      Tag<TagID::LIST, std::unique_ptr<std::vector<typename T::type>>>
+        (other.name, std::move(other.value)),
+      size{other.size},
+      curr{other.curr}
+    { }
+
+    virtual ~ListTag() {
+      // As long as T::type is a value type, it will be freed automatically when
+      // the ListTag<T> is destructed
+    }
+
     virtual TagID getChildID() {
       return getTagID<T>();
     }
 
-    constexpr TagID getID() {
+    virtual TagID id() const {
       return TagID::LIST;
     }
 
@@ -140,7 +169,13 @@ class ListTag<EndTag> : public TagBase {
       name{name},
       size{size} { }
 
-    virtual TagID getChildID() {
+    virtual ~ListTag() { }
+
+    virtual TagID id() const override {
+      return TagID::LIST;
+    }
+
+    virtual TagID childID() {
       return TagID::END;
     }
 
@@ -174,6 +209,15 @@ class ListTag<CompoundTag> : public Tag<TagID::LIST, std::unique_ptr<std::vector
       tail{0}
       { }
 
+    ListTag(ListTag&& other) :
+      Tag<TagID::LIST, std::unique_ptr<std::vector<CompoundTag>>>
+        (other.name, std::move(other.value)),
+        size{other.size},
+        tail{other.tail}
+    { }
+
+    virtual ~ListTag() { }
+
     virtual TagID getChildID() {
       return getTagID<CompoundTag>();
     }
@@ -201,41 +245,37 @@ class ListTag<CompoundTag> : public Tag<TagID::LIST, std::unique_ptr<std::vector
 
 
 
-class CompoundTag : TagBase {
+class CompoundTag : public Tag<TagID::COMPOUND, std::vector<std::shared_ptr<TagBase>>> {
   public:
     typedef CompoundTag type;
     CompoundTag() :
-      name{}
+      Tag<TagID::COMPOUND, std::vector<std::shared_ptr<TagBase>>>{
+        "", std::vector<std::shared_ptr<TagBase>>{}}
     { }
 
     CompoundTag(std::string name) :
-      name{name}
+      Tag<TagID::COMPOUND, std::vector<std::shared_ptr<TagBase>>>{
+        name, std::vector<std::shared_ptr<TagBase>>{}}
     { }
 
-    ~CompoundTag();
+    CompoundTag(CompoundTag&& other) :
+      Tag<TagID::COMPOUND, std::vector<std::shared_ptr<TagBase>>>{
+        other.name, std::move(other.value)}
+    { }
 
-    template <typename T>
-    void push_back(TagID id, T tag) {
-      ids.push_back(id);
-      T *tagCopy = new T{std::move(tag)};
+    virtual ~CompoundTag() { }
+
+    template<class T>
+    void push_back(T tag) {
+      std::shared_ptr<TagBase> tagCopy = std::make_shared<T>(std::move(tag));
       value.push_back(tagCopy);
     }
 
-    template <typename T>
-    T at(size_t i) {
-      return std::move(*reinterpret_cast<T*>(value.at(i)));
-    }
-
-    TagID idAt(size_t i) {
-      return ids.at(i);
+    std::shared_ptr<TagBase> at(size_t i) {
+      return value.at(i);
     }
 
     std::string name;
-
-  private:
-    // TODO unique_ptr
-    std::vector<TagID> ids;
-    std::vector<void*> value;
 };
 
 
