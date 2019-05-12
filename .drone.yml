@@ -6,21 +6,33 @@ steps:
   image: debian-gcc:buster
   environment:
     CXX=g++
+  when:
+    event:
+    - push
   commands:
   - make
   - make test
 - name: GCC test
   image: debian-gcc:buster
+  when:
+    event:
+    - push
   commands:
   - ./test_nbt
 - name: Clang build
   image: debian-clang:buster
   environment:
     CXX=clang++
+  when:
+    event:
+    - push
   commands:
   - make
   - make test
 - name: Clang test
   image: debian-clang:buster
+  when:
+    event:
+    - push
   commands:
   - ./test_nbt
