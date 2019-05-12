@@ -20,6 +20,7 @@
 #include <arpa/inet.h>
 
 #include "nbt.hpp"
+#include <stdio.h>
 
 
 NBTFile::NBTFile(std::string filename)
@@ -66,6 +67,48 @@ static inline uint64_t swap64(uint64_t x) {
 }
 
 
+template<class T>
+static inline T swap(T);
+
+template<>
+uint8_t swap(uint8_t x) {
+  return x;
+}
+
+template<>
+int8_t swap(int8_t x) {
+  return x;
+}
+
+template<>
+uint16_t swap(uint16_t x) {
+  return swap16(x);
+}
+
+template<>
+int16_t swap(int16_t x) {
+  return swap16(static_cast<uint16_t>(x));
+}
+
+template<>
+uint32_t swap(uint32_t x) {
+  return swap32(x);
+}
+
+template<>
+int32_t swap(int32_t x) {
+  return swap32(static_cast<uint32_t>(x));
+}
+
+template<>
+uint64_t swap(uint64_t x) {
+  return swap64(x);
+}
+
+template<>
+int64_t swap(int64_t x) {
+  return swap64(static_cast<uint64_t>(x));
+}
 
 
 template<>
@@ -144,7 +187,7 @@ ByteArrayTag::type ByteArrayTag::htof(ByteArrayTag::type unswapped) {
 
 template<>
 IntArrayTag::type IntArrayTag::ftoh(IntArrayTag::type unswapped) {
-  for (auto it = unswapped->begin(); it != unswapped->end(); it++) {
+  for (auto it = unswapped.begin(); it != unswapped.end(); it++) {
     *it = swap32(*it);
   }
   return unswapped;
@@ -152,7 +195,7 @@ IntArrayTag::type IntArrayTag::ftoh(IntArrayTag::type unswapped) {
 
 template<>
 IntArrayTag::type IntArrayTag::htof(IntArrayTag::type unswapped) {
-  for (auto it = unswapped->begin(); it != unswapped->end(); it++) {
+  for (auto it = unswapped.begin(); it != unswapped.end(); it++) {
     *it = swap32(*it);
   }
   return unswapped;
@@ -160,7 +203,7 @@ IntArrayTag::type IntArrayTag::htof(IntArrayTag::type unswapped) {
 
 template<>
 LongArrayTag::type LongArrayTag::ftoh(LongArrayTag::type unswapped) {
-  for (auto it = unswapped->begin(); it != unswapped->end(); it++) {
+  for (auto it = unswapped.begin(); it != unswapped.end(); it++) {
     *it = swap64(*it);
   }
   return unswapped;
@@ -168,7 +211,7 @@ LongArrayTag::type LongArrayTag::ftoh(LongArrayTag::type unswapped) {
 
 template<>
 LongArrayTag::type LongArrayTag::htof(LongArrayTag::type unswapped) {
-  for (auto it = unswapped->begin(); it != unswapped->end(); it++) {
+  for (auto it = unswapped.begin(); it != unswapped.end(); it++) {
     *it = swap64(*it);
   }
   return unswapped;
@@ -200,10 +243,10 @@ int32_t NBTFile::readSize() {
   return swap32(size);
 }
 
-int16_t NBTFile::readListSize() {
-  int16_t size;
+int32_t NBTFile::readListSize() {
+  int32_t size;
   file.read(reinterpret_cast<char*>(&size), sizeof(size));
-  return swap16(size);
+  return swap32(size);
 }
 
 template <typename T>
@@ -237,7 +280,7 @@ StringTag NBTFile::readTag<StringTag>(std::string name) {
   length = swap16(length);
   std::string str(static_cast<size_t>(length), static_cast<char>('\0'));
   file.read(&str[0], length*sizeof(char));
-  return StringTag{name, std::unique_ptr<std::string>{new std::string{str}}};
+  return StringTag{name, str};
 }
 
 template <>
@@ -284,10 +327,12 @@ LongArrayTag NBTFile::readTag<LongArrayTag>() {
  */
 template <typename T>
 T NBTFile::readTagArray(std::string name, int32_t size) {
-  T tag{name, std::make_unique<typename T::type::element_type>(size)};
+  T tag{name, typename T::type{}};
+  typename T::type::value_type value;
   for (int i = 0; i < size; i++) {
-    file.read(reinterpret_cast<char*>(&(*tag.value)[i]),
-              sizeof(typename T::type::element_type::value_type));
+    file.read(reinterpret_cast<char*>(&value),
+              sizeof(typename T::type::value_type));
+    tag.value().push_back(swap(value));
   }
   return tag;
 }
@@ -350,7 +395,7 @@ ListTag<EndTag> NBTFile::readTagList<EndTag>(TagID id, std::string name) {
 }
 
 void ListTag<CompoundTag>::push_back(CompoundTag tag) {
-  value->push_back(std::move(tag));
+  value().push_back(tag);
 }
 
 

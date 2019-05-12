@@ -130,11 +130,8 @@ TEST_CASE("Array type byte-swaps", "[array]") {
         0x12, 0x13, 0x14, 0x15
       };
       std::vector<int8_t> expVec{vec};
-      std::unique_ptr<std::vector<int8_t>> upVec =
-        std::make_unique<std::vector<int8_t>>(vec);
-      std::unique_ptr<std::vector<int8_t>> upOutVec =
-        ByteArrayTag::ftoh(std::move(upVec));
-      REQUIRE(*upOutVec == expVec);
+      std::vector<int8_t> outVec = ByteArrayTag::ftoh(vec);
+      REQUIRE(outVec == expVec);
     }
     {
       std::vector<int32_t> vec = {
@@ -143,11 +140,8 @@ TEST_CASE("Array type byte-swaps", "[array]") {
       std::vector<int32_t> expVec = {
         0x12000000, 0x13000000, 0x14000000, 0x15000000
       };
-      std::unique_ptr<std::vector<int32_t>> upVec =
-        std::make_unique<std::vector<int32_t>>(vec);
-      std::unique_ptr<std::vector<int32_t>> upOutVec =
-        IntArrayTag::ftoh(std::move(upVec));
-      REQUIRE(*upOutVec == expVec);
+      std::vector<int32_t> outVec = IntArrayTag::ftoh(vec);
+      REQUIRE(outVec == expVec);
     }
     {
       std::vector<int64_t> vec = {
@@ -157,42 +151,30 @@ TEST_CASE("Array type byte-swaps", "[array]") {
         0x1200000000000000, 0x1300000000000000,
         0x1400000000000000, 0x1500000000000000
       };
-      std::unique_ptr<std::vector<int64_t>> upVec =
-        std::make_unique<std::vector<int64_t>>(vec);
-      std::unique_ptr<std::vector<int64_t>> upOutVec =
-        LongArrayTag::ftoh(std::move(upVec));
-      REQUIRE(*upOutVec == expVec);
+      std::vector<int64_t> outVec = LongArrayTag::ftoh(vec);
+      REQUIRE(outVec == expVec);
     }
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     {
       std::vector<int8_t> vec = {
         0x12, 0x13, 0x14, 0x15
       };
-      std::unique_ptr<std::vector<int8_t>> upVec =
-        std::make_unique<std::vector<int8_t>>(vec);
-      std::unique_ptr<std::vector<int8_t>> upOutVec =
-        std::move(ByteArrayTag::ftoh(std::move(upVec)));
-      REQUIRE(*upOutVec == vec);
+      std::vector<int8_t> outVec = ByteArrayTag::ftoh(vec);
+      REQUIRE(outVec == vec);
     }
     {
       std::vector<int32_t> vec = {
         0x12, 0x13, 0x14, 0x15
       };
-      std::unique_ptr<std::vector<int32_t>> upVec =
-        std::make_unique<std::vector<int32_t>>(vec);
-      std::unique_ptr<std::vector<int32_t>> upOutVec =
-        std::move(IntArrayTag::ftoh(std::move(upVec)));
-      REQUIRE(*upOutVec == vec);
+      std::vector<int32_t> outVec = IntArrayTag::ftoh(vec);
+      REQUIRE(outVec == vec);
     }
     {
       std::vector<int64_t> vec = {
         0x12, 0x13, 0x14, 0x15
       };
-      std::unique_ptr<std::vector<int64_t>> upVec =
-        std::make_unique<std::vector<int64_t>>(vec);
-      std::unique_ptr<std::vector<int64_t>> upOutVec =
-        std::move(LongArrayTag::ftoh(std::move(upVec)));
-      REQUIRE(*upOutVec == vec);
+      std::vector<int64_t> outVec = LongArrayTag::ftoh(vec);
+      REQUIRE(outVec == vec);
     }
 #endif
   }
@@ -204,11 +186,8 @@ TEST_CASE("Array type byte-swaps", "[array]") {
         0x12, 0x13, 0x14, 0x15
       };
       std::vector<int8_t> expVec{vec};
-      std::unique_ptr<std::vector<int8_t>> upVec =
-        std::make_unique<std::vector<int8_t>>(vec);
-      std::unique_ptr<std::vector<int8_t>> upOutVec =
-        ByteArrayTag::htof(std::move(upVec));
-      REQUIRE(*upOutVec == expVec);
+      std::vector<int8_t> outVec = ByteArrayTag::htof(vec);
+      REQUIRE(outVec == expVec);
     }
     {
       std::vector<int32_t> vec = {
@@ -217,11 +196,8 @@ TEST_CASE("Array type byte-swaps", "[array]") {
       std::vector<int32_t> expVec = {
         0x12, 0x13, 0x14, 0x15
       };
-      std::unique_ptr<std::vector<int32_t>> upVec =
-        std::make_unique<std::vector<int32_t>>(vec);
-      std::unique_ptr<std::vector<int32_t>> upOutVec =
-        IntArrayTag::htof(std::move(upVec));
-      REQUIRE(*upOutVec == expVec);
+      std::vector<int32_t> outVec = IntArrayTag::htof(vec);
+      REQUIRE(outVec == expVec);
     }
     {
       std::vector<int64_t> vec = {
@@ -231,43 +207,31 @@ TEST_CASE("Array type byte-swaps", "[array]") {
       std::vector<int64_t> expVec = {
         0x12, 0x13, 0x14, 0x15
       };
-      std::unique_ptr<std::vector<int64_t>> upVec =
-        std::make_unique<std::vector<int64_t>>(vec);
-      std::unique_ptr<std::vector<int64_t>> upOutVec =
-        LongArrayTag::htof(std::move(upVec));
-      REQUIRE(*upOutVec == expVec);
+      std::vector<int64_t> outVec = LongArrayTag::htof(vec);
+      REQUIRE(outVec == expVec);
     }
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     {
       std::vector<int8_t> vec = {
         0x12, 0x13, 0x14, 0x15
       };
-      std::unique_ptr<std::vector<int8_t>> upVec =
-        std::make_unique<std::vector<int8_t>>(vec);
-      std::unique_ptr<std::vector<int8_t>> upOutVec =
-        std::move(ByteArrayTag::htof(std::move(upVec)));
-      REQUIRE(*upOutVec == vec);
+      std::vector<int8_t> outVec = ByteArrayTag::htof(vec);
+      REQUIRE(outVec == vec);
     }
     {
       std::vector<int32_t> vec = {
         0x12000000, 0x13000000, 0x14000000, 0x15000000
       };
-      std::unique_ptr<std::vector<int32_t>> upVec =
-        std::make_unique<std::vector<int32_t>>(vec);
-      std::unique_ptr<std::vector<int32_t>> upOutVec =
-        std::move(IntArrayTag::htof(std::move(upVec)));
-      REQUIRE(*upOutVec == vec);
+      std::vector<int32_t> outVec = IntArrayTag::htof(vec);
+      REQUIRE(outVec == vec);
     }
     {
       std::vector<int64_t> vec = {
         0x1200000000000000, 0x1300000000000000,
         0x1400000000000000, 0x1500000000000000
       };
-      std::unique_ptr<std::vector<int64_t>> upVec =
-        std::make_unique<std::vector<int64_t>>(vec);
-      std::unique_ptr<std::vector<int64_t>> upOutVec =
-        std::move(LongArrayTag::htof(std::move(upVec)));
-      REQUIRE(*upOutVec == vec);
+      std::vector<int64_t> outVec = LongArrayTag::htof(vec);
+      REQUIRE(outVec == vec);
     }
 #endif
   }

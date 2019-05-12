@@ -57,17 +57,8 @@ template <TagID tagID, typename T>
 struct Tag : TagBase {
   public:
     typedef T type;
-    Tag(std::string name, T value) : name{name}, value{std::move(value)} { }
-    Tag(Tag&& other) : name{other.name}, value{std::move(other.value)} { }
-    Tag& operator=(Tag&& other) {
-      name = other.name;
-      value = std::move(other.value);
-      return *this;
-    }
+    Tag(std::string name, T value) : mName{name}, mValue{value} { }
     virtual ~Tag() { }
-
-    std::string name;
-    T value;
 
     static T ftoh(T unswapped);
     static T htof(T unswapped);
@@ -75,7 +66,60 @@ struct Tag : TagBase {
     virtual TagID id() const {
       return tagID;
     }
+
+    std::string name() const {
+      return mName;
+    }
+
+    T& value() {
+      return mValue;
+    }
+
+  protected:
+    std::string mName;
+    T mValue;
 };
+
+template <TagID tagID, typename T>
+struct ArrayTag : TagBase {
+  public:
+    typedef std::vector<T> type;
+    ArrayTag(std::string name, std::vector<T> value) :
+      mName{name}, mValue{value} { }
+    virtual ~ArrayTag() { }
+
+    static type ftoh(type unswapped);
+    static type htof(type unswapped);
+
+    virtual TagID id() const {
+      return tagID;
+    }
+
+    std::string name() const {
+      return mName;
+    }
+
+    std::vector<T>& value() {
+      return mValue;
+    }
+
+    size_t size() const {
+      return mValue.size();
+    }
+
+    void push_back(T val) {
+      value().push_back(val);
+    }
+
+    T& at(size_t i) const {
+      return mValue.at(i);
+    }
+
+  private:
+    std::string mName;
+    std::vector<T> mValue;
+};
+
 
 
 template <typename T>
@@ -104,30 +148,32 @@ using FloatTag = Tag<TagID::FLOAT, float>;
 using DoubleTag = Tag<TagID::DOUBLE, double>;
 
 
-using ByteArrayTag = Tag<TagID::BYTE_ARRAY, std::unique_ptr<std::vector<int8_t>>>;
-using IntArrayTag = Tag<TagID::INT_ARRAY, std::unique_ptr<std::vector<int32_t>>>;
-using LongArrayTag = Tag<TagID::LONG_ARRAY, std::unique_ptr<std::vector<int64_t>>>;
+using ByteArrayTag = ArrayTag<TagID::BYTE_ARRAY, int8_t>;
+using IntArrayTag = ArrayTag<TagID::INT_ARRAY, int32_t>;
+using LongArrayTag = ArrayTag<TagID::LONG_ARRAY, int64_t>;
 
-using StringTag = Tag<TagID::STRING, std::unique_ptr<std::string>>;
+using StringTag = Tag<TagID::STRING, std::string>;
 
 
 
 template <typename T>
-class ListTag : public Tag<TagID::LIST, std::unique_ptr<std::vector<typename T::type>>> {
+class ListTag : public TagBase {
   public:
+    typedef std::vector<typename T::type> type;
+
     // Due to unique_ptr attribute, there will be no implicit copy operator
     explicit ListTag(std::string name, int32_t size) :
-      Tag<TagID::LIST, std::unique_ptr<std::vector<typename T::type>>>
-        (name, std::move(std::make_unique<std::vector<typename T::type>>(size))),
-      size{size},
-      curr{0}
-    { }
+      mName{name},
+      mValue{std::vector<typename T::type>()},
+      mSize{size}
+    {
+      mValue.reserve(size);
+    }
 
     ListTag(ListTag&& other) :
-      Tag<TagID::LIST, std::unique_ptr<std::vector<typename T::type>>>
-        (other.name, std::move(other.value)),
-      size{other.size},
-      curr{other.curr}
+      mName{other.name()},
+      mValue{std::move(other.value())},
+      mSize{other.size()}
     { }
 
     virtual ~ListTag() {
@@ -143,31 +189,38 @@ class ListTag : public Tag<TagID::LIST, std::unique_ptr<std::vector<typename T::
       return TagID::LIST;
     }
 
+    std::string name() const {
+      return mName;
+    }
+
+    std::vector<typename T::type>& value() {
+      return mValue;
+    }
+
     void push_back(T tag) {
-      (this->value)->at(curr) = std::move(tag.value);
-      curr++;
+      value().push_back(tag.value());
     }
 
     T at(size_t i) {
-      return (this->value)->at(i);
+      return value().at(i);
     }
 
-    int32_t getSize() const {
-      return size;
+    int32_t size() const {
+      return mSize;
     }
-
-    int32_t size;
 
   private:
-    int32_t curr;
+    std::string mName;
+    std::vector<typename T::type> mValue;
+    int32_t mSize;
 };
 
 template <>
 class ListTag<EndTag> : public TagBase {
   public:
     explicit ListTag(std::string name, int32_t size) :
-      name{name},
-      size{size} { }
+      mName{name},
+      mSize{size} { }
 
     virtual ~ListTag() { }
 
@@ -181,13 +234,22 @@ class ListTag<EndTag> : public TagBase {
 
     template<typename T>
     ListTag<T> push_back(T tag) {
-      ListTag<T> newList(name, size);
+      ListTag<T> newList(name(), size());
       newList.push_back(std::move(tag));
       return newList;
     }
 
-    std::string name;
-    int32_t size;
+    std::string name() const {
+      return mName;
+    }
+
+    int32_t size() const {
+      return mSize;
+    }
+
+  private:
+    std::string mName;
+    int32_t mSize;
 };
 
 class CompoundTag;
@@ -198,45 +260,59 @@ constexpr TagID getTagID<CompoundTag>() {
 }
 
 template <>
-class ListTag<CompoundTag> : public Tag<TagID::LIST, std::unique_ptr<std::vector<CompoundTag>>> {
+class ListTag<CompoundTag> : public TagBase {
   public:
+    typedef std::vector<CompoundTag> type;
+
     // Due to unique_ptr member, there will be no implicit copy constructor
     explicit ListTag(std::string name, TagID memberID, int32_t size) :
-      Tag<TagID::LIST, std::unique_ptr<std::vector<CompoundTag>>>
-        (name, std::make_unique<std::vector<CompoundTag>>(size)),
-      memberID{memberID},
-      size{size},
-      tail{0}
-      { }
+      mSize{size},
+      mName{name},
+      mValue{},
+      mMemberID{memberID}
+      {
+        mValue.reserve(size);
+      }
 
     ListTag(ListTag&& other) :
-      Tag<TagID::LIST, std::unique_ptr<std::vector<CompoundTag>>>
-        (other.name, std::move(other.value)),
-        size{other.size},
-        tail{other.tail}
+      mSize{other.size()},
+      mName{other.name()},
+      mValue{other.value()}
     { }
 
     virtual ~ListTag() { }
+
+    virtual TagID id() const {
+      return TagID::LIST;
+    }
 
     virtual TagID getChildID() {
       return getTagID<CompoundTag>();
     }
 
+    std::string name() const {
+      return mName;
+    }
+
+    std::vector<CompoundTag>& value() {
+      return mValue;
+    }
+
     void push_back(CompoundTag tag);
 
     CompoundTag& at(size_t i) {
-      return this->value->at(i);
+      return value().at(i);
     }
 
-    int32_t getSize() const {
-      return size;
+    int32_t size() const {
+      return mSize;
     }
-
-    TagID memberID;
-    int32_t size;
 
   private:
-    size_t tail;
+    int32_t mSize;
+    std::string mName;
+    std::vector<CompoundTag> mValue;
+    TagID mMemberID;
 };
 
 
@@ -258,24 +334,21 @@ class CompoundTag : public Tag<TagID::COMPOUND, std::vector<std::shared_ptr<TagB
         name, std::vector<std::shared_ptr<TagBase>>{}}
     { }
 
-    CompoundTag(CompoundTag&& other) :
-      Tag<TagID::COMPOUND, std::vector<std::shared_ptr<TagBase>>>{
-        other.name, std::move(other.value)}
-    { }
-
     virtual ~CompoundTag() { }
 
     template<class T>
     void push_back(T tag) {
       std::shared_ptr<TagBase> tagCopy = std::make_shared<T>(std::move(tag));
-      value.push_back(tagCopy);
+      value().push_back(tagCopy);
     }
 
     std::shared_ptr<TagBase> at(size_t i) {
-      return value.at(i);
+      return value().at(i);
     }
 
-    std::string name;
+    size_t size() const {
+      return mValue.size();
+    }
 };
 
 
@@ -404,7 +477,7 @@ class NBTFile {
 
   private:
     std::string readName();
-    int16_t readListSize();
+    int32_t readListSize();
     int32_t readSize();
     std::ifstream file;
 };

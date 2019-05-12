@@ -18,7 +18,9 @@ TEST_SRCS = \
 	    test/test_nbt.cpp \
 	    test/test_swaps.cpp \
 
-CXXFLAGS += -std=gnu++14 -Wall -MD $(INCDIRS)
+CXXFLAGS += -std=gnu++14 -Wall -MD -g $(INCDIRS)
+
+LDFLAGS += -g
 
 TEST_OBJS := $(TEST_SRCS:%.cpp=%.o)
 
@@ -48,6 +50,9 @@ $(TEST_EXE): $(TEST_OBJS) $(STATIC_LIB)
 test_data:
 	make -C test/data
 
+.PHONY: check
+check: test
+	./$(TEST_EXE)
 
 
 .PHONY: clean
