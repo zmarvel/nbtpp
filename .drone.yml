@@ -1,0 +1,26 @@
+kind: pipeline
+name: default
+
+steps:
+- name: GCC build
+  image: debian-gcc:buster
+  environment:
+    CXX=g++
+  commands:
+  - make
+  - make test
+- name: GCC test
+  image: debian-gcc:buster
+  commands:
+  - ./test_nbt
+- name: Clang build
+  image: debian-clang:buster
+  environment:
+    CXX=clang++
+  commands:
+  - make
+  - make test
+- name: Clang test
+  image: debian-clang:buster
+  commands:
+  - ./test_nbt
