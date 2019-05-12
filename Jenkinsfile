@@ -1,6 +1,9 @@
 pipeline {
     agent any
     stages {
+        stage('Git checkout') {
+            checkout scm
+        }
         stage('Build GCC') {
             steps {
                 sh 'make clean'
