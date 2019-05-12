@@ -2,7 +2,9 @@ pipeline {
     agent any
     stages {
         stage('Git checkout') {
-            checkout scm
+            steps{
+                checkout scm
+            }
         }
         stage('Build GCC') {
             steps {
