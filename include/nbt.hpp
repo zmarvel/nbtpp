@@ -111,7 +111,11 @@ struct ArrayTag : TagBase {
       value().push_back(val);
     }
 
-    T& at(size_t i) const {
+    const T& at(size_t i) const {
+      return mValue.at(i);
+    }
+
+    T& at(size_t i) {
       return mValue.at(i);
     }
 
@@ -470,6 +474,7 @@ class NBTFile {
     }
 
     TagID readID();
+    std::string readName();
 
     template <typename T>
     T readTag();
@@ -490,7 +495,6 @@ class NBTFile {
     CompoundTag readCompoundTag(std::string name);
 
   private:
-    std::string readName();
     int32_t readListSize();
     int32_t readSize();
     std::ifstream file;

@@ -27,7 +27,7 @@ NBTFile::NBTFile(std::string filename)
   : file{filename, std::ios_base::in | std::ios_base::binary}
 {
   if (!file.is_open()) {
-    std::cerr << "ERR: NBTFile is not open" << std::endl;
+    throw NBTException("Unable to open file");
   }
 }
 

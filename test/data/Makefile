@@ -15,6 +15,11 @@ DATS = \
        list_string_tag.dat \
        list_compound_tag.dat \
        compound_tag.dat \
+       ends_unexpectedly_list.dat \
+       ends_unexpectedly_compound.dat \
+       ends_unexpectedly_int.dat \
+       ends_unexpectedly_name.dat \
+       ends_unexpectedly_long_array.dat \
 
 HEXS = $(DATS:.dat=.hex)
 

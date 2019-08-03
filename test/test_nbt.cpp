@@ -210,18 +210,82 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       REQUIRE(tag.size() == 2);
 
       {
-        //CompoundTag child0 = tag.at(0);
-        //REQUIRE(child0.at(0)->id() == TagID::STRING);
-        //StringTag string = *std::dynamic_pointer_cast<StringTag>(child0.at(0));
-        //REQUIRE(string.name() == "string child");
-        //REQUIRE(string.value() == "asdfsdfg");
-        //REQUIRE(child0.at(1)->id() == TagID::LONG_ARRAY);
+        CompoundTag child = tag.at(0);
+        REQUIRE(child.at(0)->id() == TagID::STRING);
+        std::shared_ptr<StringTag> pString =
+          std::dynamic_pointer_cast<StringTag>(child.at(0));
+        REQUIRE(pString->name() == "string child");
+        REQUIRE(pString->value() == "asdfsdfg");
+
+        REQUIRE(child.at(1)->id() == TagID::LONG_ARRAY);
+        std::shared_ptr<LongArrayTag> pLongArray =
+          std::dynamic_pointer_cast<LongArrayTag>(child.at(1));
+        REQUIRE(pLongArray->name() == "long array child");
+        REQUIRE(pLongArray->size() == 2);
+        REQUIRE(pLongArray->at(0) == 0x0001020304050607);
+        REQUIRE(pLongArray->at(1) == 0x08090a0b0c0d0e0f);
+      }
+
+      {
+        CompoundTag child = tag.at(1);
+        REQUIRE(child.at(0)->id() == TagID::INT);
+        std::shared_ptr<IntTag> pInt =
+          std::dynamic_pointer_cast<IntTag>(child.at(0));
+        REQUIRE(pInt->name() == "int child");
+        REQUIRE(pInt->value() == 0x01020304);
+
+        REQUIRE(child.at(1)->id() == TagID::SHORT);
+        std::shared_ptr<ShortTag> pShort0 =
+          std::dynamic_pointer_cast<ShortTag>(child.at(1));
+        REQUIRE(pShort0->name() == "short child");
+        REQUIRE(pShort0->value() == 0x0506);
+
+        REQUIRE(child.at(2)->id() == TagID::SHORT);
+        std::shared_ptr<ShortTag> pShort1 =
+          std::dynamic_pointer_cast<ShortTag>(child.at(2));
+        REQUIRE(pShort1->name() == "short child2");
+        REQUIRE(pShort1->value() == 0x0708);
       }
     }
   }
-    // TODO
-    // Test bad paths:
-    // - File doesn't exist
-    // - File ends unexpectedly (e.g. list with length 2 and 0 real members)
-    // - CompoundTag with no EndTag (falls into "file ends unexpectedly")
+
+  SECTION("Error conditions") {
+    SECTION("Input file doesn't exist") {
+      auto constructFile = []() {
+        NBTFile file{"./file/doesnt/exist.dat"};
+      };
+      REQUIRE_THROWS(constructFile());
+    }
+    SECTION("File ends unexpectedly (list)") {
+      NBTFile file{"./test/data/ends_unexpectedly_list.dat"};
+      REQUIRE(file.readID() == TagID::LIST);
+      std::string name = file.readName();
+      REQUIRE(name == "bad string");
+      TagID childID = file.readID();
+      REQUIRE(childID == TagID::INT);
+      REQUIRE_THROWS(file.readTagList<IntTag>(childID, name));
+    }
+    SECTION("File ends unexpectedly (compound)") {
+      NBTFile file{"./test/data/ends_unexpectedly_compound.dat"};
+      REQUIRE(file.readID() == TagID::COMPOUND);
+      REQUIRE_THROWS(file.readCompoundTag(""));
+    }
+    SECTION("File ends unexpectedly (int)") {
+      NBTFile file{"./test/data/ends_unexpectedly_int.dat"};
+      REQUIRE(file.readID() == TagID::INT);
+      std::string name = file.readName();
+      REQUIRE(name == "bad int");
+      REQUIRE_THROWS(file.readTag<IntTag>(name));
+    }
+    SECTION("File ends unexpectedly (name)") {
+      NBTFile file{"./test/data/ends_unexpectedly_name.dat"};
+      REQUIRE(file.readID() == TagID::INT_ARRAY);
+      REQUIRE_THROWS(file.readName());
+    }
+    SECTION("File ends unexpectedly (long array)") {
+      NBTFile file{"./test/data/ends_unexpectedly_long_array.dat"};
+      REQUIRE(file.readID() == TagID::LONG_ARRAY);
+      REQUIRE_THROWS(file.readName());
+    }
+  }
 }
