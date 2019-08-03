@@ -14,7 +14,7 @@ pipeline {
         }
         stage('Test GCC') {
             steps {
-                sh '. asan_env && make -j4 CXX=g++ clean check'
+                sh 'source asan_env && make -j4 CXX=g++ clean check'
             }
         }
         stage('Build Clang') {
@@ -25,7 +25,7 @@ pipeline {
         }
         stage('Test Clang') {
             steps {
-                sh '. asan_env && make -j4 CXX=clang++ clean check'
+                sh 'source asan_env && make -j4 CXX=clang++ clean check'
             }
         }
     }
