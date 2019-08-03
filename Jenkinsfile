@@ -9,25 +9,23 @@ pipeline {
         stage('Build GCC') {
             steps {
                 sh 'make clean'
-                sh 'make CXX=g++'
-                sh 'make CXX=g++ test'
+                sh 'make -j4 CXX=g++'
             }
         }
         stage('Test GCC') {
             steps {
-                sh './test_nbt'
+                sh 'source asan_env && make -j4 CXX=g++ clean check'
             }
         }
         stage('Build Clang') {
             steps {
                 sh 'make clean'
-                sh 'make CXX=clang++'
-                sh 'make CXX=clang++ test'
+                sh 'make -j4 CXX=clang++'
             }
         }
         stage('Test Clang') {
             steps {
-                sh './test_nbt'
+                sh 'source asan_env && make -j4 CXX=clang++ clean check'
             }
         }
     }
