@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
   //TagID id = input.readID();
 
   try {
-    ListTag<CompoundTag> root{input.readTagList<CompoundTag>()};
+    auto root{input.readCompoundTag("")};
   }
   catch (NBTTagException& e) {
     std::cerr << "NBTTagException: " << e.what() << std::endl;

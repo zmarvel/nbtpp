@@ -165,7 +165,7 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       TagID id = file.readID();
       REQUIRE(id == TagID::COMPOUND);
       CompoundTag tag{file.readCompoundTag("")};
-      //REQUIRE(tag.size() == 4);
+      REQUIRE(tag.size() == 4);
       { // StringTag
         REQUIRE(tag.at(0)->id() == TagID::STRING);
         StringTag child = std::move(*std::dynamic_pointer_cast<StringTag>(tag.at(0)));
@@ -208,9 +208,15 @@ TEST_CASE("Reading from test files", "[nbtfile]") {
       ListTag<CompoundTag> tag = file.readTagList<CompoundTag>();
       REQUIRE(tag.name() == "listof compound");
       REQUIRE(tag.size() == 2);
-      // TODO
-      //CompoundTag child0 = tag.at(0);
-      //REQUIRE(child0.idAt(0) == TagID::STRING);
+
+      {
+        //CompoundTag child0 = tag.at(0);
+        //REQUIRE(child0.at(0)->id() == TagID::STRING);
+        //StringTag string = *std::dynamic_pointer_cast<StringTag>(child0.at(0));
+        //REQUIRE(string.name() == "string child");
+        //REQUIRE(string.value() == "asdfsdfg");
+        //REQUIRE(child0.at(1)->id() == TagID::LONG_ARRAY);
+      }
     }
   }
     // TODO

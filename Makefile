@@ -5,11 +5,14 @@ TEST_EXE = test_nbt
 
 STATIC_LIB = libnbtpp.a
 
-SRCS = \
-       src/nbt_dump.cpp \
-       src/nbt.cpp \
+LIB_SRCS = src/nbt.cpp \
 
-OBJS := $(SRCS:%.cpp=%.o)
+LIB_OBJS := $(LIB_SRCS:%.cpp=%.o)
+
+EXE_SRCS = \
+       src/nbt_dump.cpp \
+
+EXE_OBJS := $(EXE_SRCS:%.cpp=%.o)
 
 INCDIRS = -Iinclude
 
@@ -26,42 +29,46 @@ TEST_OBJS := $(TEST_SRCS:%.cpp=%.o)
 
 TEST_INCDIRS = -Ilib/Catch2/single_include
 
-TEST_CXXFLAGS := $(CXXFLAGS) $(TEST_INCDIRS)
-
-DEPS := $(SRCS:%.cpp=%.d) $(TEST_SRCS:%.cpp=%.d)
+DEPS := $(LIB_SRCS:%.cpp=%.d) $(EXE_SRCS:%.cpp=%.d) $(TEST_SRCS:%.cpp=%.d)
 
 all: $(EXE) $(STATIC_LIB)
 
 .PHONY: test
 test: $(TEST_EXE) test_data
 
-$(EXE): src/nbt_dump.o $(STATIC_LIB)
+$(EXE): $(EXE_OBJS) $(STATIC_LIB)
 	$(CXX) $(LDFLAGS) -o $@ $^
 
-$(STATIC_LIB): src/nbt.o
+$(EXE_OBJS): $(STATIC_LIB)
+
+%.o: %.cpp
+	$(CXX) -c $(CXXFLAGS) -o $@ $<
+
+$(STATIC_LIB): $(LIB_OBJS)
 	ar rcs $@ $^
 
-$(TEST_OBJS): CXXFLAGS += $(TEST_CXXFLAGS)
+$(TEST_OBJS): CXXFLAGS += $(TEST_INCDIRS)
 
-$(TEST_EXE): $(TEST_OBJS) $(STATIC_LIB)
-	$(CXX) $(LDFLAGS) -o $@ $^
+$(TEST_EXE): $(TEST_OBJS) $(STATIC_LIB) test_data
+	$(CXX) $(LDFLAGS) -o $@ $(TEST_OBJS) $(STATIC_LIB)
+
 
 .PHONY: test_data
 test_data:
-	make -C test/data
+	$(MAKE) -C test/data
 
 .PHONY: check
-check: test
+check: $(TEST_EXE)
 	./$(TEST_EXE)
 
 
 .PHONY: clean
 clean:
-	rm -f $(EXE) $(STATIC_LIB) $(OBJS) $(TEST_EXE) $(TEST_OBJS) $(DEPS)
+	rm -f $(EXE) $(STATIC_LIB) $(LIB_OBJS) $(EXE_OBJS) $(TEST_EXE) $(TEST_OBJS) $(DEPS)
 	make -C test/data clean
 
-.PHONY: tags
-tags:
+.PHONY: tags ctags
+tags ctags:
 	ctags -R src include test
 
 -include $(DEPS)

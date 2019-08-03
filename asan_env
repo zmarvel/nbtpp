@@ -1,0 +1,4 @@
+export ASAN_OPTIONS=symbolize=1
+export ASAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer
+export CXXFLAGS="-lasan -fsanitize=address -fno-omit-frame-pointer"
+export LDFLAGS="-lasan -g -fno-omit-frame-pointer"

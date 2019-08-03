@@ -224,6 +224,10 @@ LongArrayTag::type LongArrayTag::htof(LongArrayTag::type unswapped) {
 TagID NBTFile::readID() {
   char rawID;
   file.read(&rawID, sizeof(char)); 
+  if (file.fail()) {
+    throw NBTException{"Unexpectedly reached end of file while reading ID"};
+  }
+  std::cout << "Read ID " << static_cast<unsigned int>(rawID) << std::endl;
   return static_cast<TagID>(rawID);
 }
 
@@ -234,18 +238,27 @@ std::string NBTFile::readName() {
   nameSize = swap16(nameSize);
   std::unique_ptr<char[]> name = std::make_unique<char[]>(nameSize);
   file.read(name.get(), nameSize);
+  if (file.fail()) {
+    throw NBTException{"Unexpectedly reached end of file while reading name"};
+  }
   return std::string{name.get(), nameSize};
 }
 
 int32_t NBTFile::readSize() {
   int32_t size;
   file.read(reinterpret_cast<char*>(&size), sizeof(size));
+  if (file.fail()) {
+    throw NBTException{"Unexpectedly reached end of file while reading size"};
+  }
   return swap32(size);
 }
 
 int32_t NBTFile::readListSize() {
   int32_t size;
   file.read(reinterpret_cast<char*>(&size), sizeof(size));
+  if (file.fail()) {
+    throw NBTException{"Unexpectedly reached end of file while reading list size"};
+  }
   return swap32(size);
 }
 
@@ -253,6 +266,9 @@ template <typename T>
 T NBTFile::readTag(std::string name) {
   typename T::type value;
   file.read(reinterpret_cast<char*>(&value), sizeof(value));
+  if (file.fail()) {
+    throw NBTException{"Unexpectedly reached end of file while reading tag value"};
+  }
   return T{name, T::ftoh(std::move(value))};
 }
 
@@ -277,9 +293,15 @@ template <>
 StringTag NBTFile::readTag<StringTag>(std::string name) {
   int16_t length;
   file.read(reinterpret_cast<char*>(&length), sizeof(length));
+  if (file.fail()) {
+    throw NBTException{"Unexpectedly reached end of file while reading string length"};
+  }
   length = swap16(length);
   std::string str(static_cast<size_t>(length), static_cast<char>('\0'));
   file.read(&str[0], length*sizeof(char));
+  if (file.fail()) {
+    throw NBTException{"Unexpectedly reached end of file while reading string value"};
+  }
   return StringTag{name, str};
 }
 
@@ -319,8 +341,20 @@ LongArrayTag NBTFile::readTag<LongArrayTag>(std::string name) {
 
 template <>
 LongArrayTag NBTFile::readTag<LongArrayTag>() {
-  return readTag<LongArrayTag>(readName());;
+  return readTag<LongArrayTag>(readName());
 }
+
+#if 0
+template <>
+CompoundTag NBTFile::readTag<CompoundTag>(std::string name) {
+  return readCompoundTag(name);
+}
+
+template <>
+CompoundTag NBTFile::readTag<CompoundTag>() {
+  return readTag<CompoundTag>(readName());
+}
+#endif
 
 /**
  * Helper for reading arrays of fixed-size values.
@@ -352,7 +386,7 @@ template <typename T>
 ListTag<T> NBTFile::readTagList() {
   std::string name = readName();
   TagID id = readID();
-  return std::move(readTagList<T>(id, name));
+  return readTagList<T>(id, name);
 }
 
 
@@ -372,6 +406,7 @@ ListTag<CompoundTag> NBTFile::readTagList<CompoundTag>(TagID id, std::string nam
   int32_t size = readSize();
   ListTag<CompoundTag> list{name, id, size};
   for (int i = 0; i < size; i++) {
+    std::cout << "readTagList<CompoundTag> " << i << std::endl;
     list.push_back(readCompoundTag(""));
   }
   return list;
@@ -487,7 +522,7 @@ CompoundTag NBTFile::readCompoundTag(std::string name) {
               ct.push_back(readTagList<LongArrayTag>(listID, listName));
               break;
             default:
-              throw NBTTagException(listID, "Unrecognized tag");
+              throw NBTTagException(listID, "Unrecognized tag in list");
               break;
           }
         }

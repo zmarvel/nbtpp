@@ -429,7 +429,7 @@ class NBTTagException : public std::exception {
 
     virtual const char* what() const noexcept
     {
-      std::string expl = why + ": " + std::to_string(static_cast<int>(id));
+      static std::string expl = why + ": " + std::to_string(static_cast<unsigned int>(id));
       return expl.c_str();
     }
 
@@ -437,6 +437,20 @@ class NBTTagException : public std::exception {
     std::string why;
 };
 
+class NBTException : public std::exception {
+  public:
+    explicit NBTException(const char* why) :
+      why{why}
+    { }
+
+    virtual const char* what() const noexcept
+    {
+      return why;
+    }
+
+  private:
+    const char* why;
+};
 
 class NBTFile {
   public:
