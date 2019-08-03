@@ -227,7 +227,6 @@ TagID NBTFile::readID() {
   if (file.fail()) {
     throw NBTException{"Unexpectedly reached end of file while reading ID"};
   }
-  std::cout << "Read ID " << static_cast<unsigned int>(rawID) << std::endl;
   return static_cast<TagID>(rawID);
 }
 
@@ -406,7 +405,6 @@ ListTag<CompoundTag> NBTFile::readTagList<CompoundTag>(TagID id, std::string nam
   int32_t size = readSize();
   ListTag<CompoundTag> list{name, id, size};
   for (int i = 0; i < size; i++) {
-    std::cout << "readTagList<CompoundTag> " << i << std::endl;
     list.push_back(readCompoundTag(""));
   }
   return list;
