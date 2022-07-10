@@ -3,24 +3,25 @@ pipeline {
     stages {
         stage('Build GCC') {
             steps {
-                sh 'make clean'
-                sh 'make -j4 CXX=g++'
+                sh 'cmake -S . -B build.gcc -G Ninja -DCMAKE_BUILD_TYPE=Debug'
+                sh 'cmake --build build.gcc'
             }
         }
         stage('Test GCC') {
             steps {
-                sh '. ./asan_env && make -j4 CXX=g++ clean check'
+                sh 'make -C test/data check'
+                sh './build.gcc/test_nbt'
             }
         }
         stage('Build Clang') {
             steps {
-                sh 'make clean'
-                sh 'make -j4 CXX=clang++'
+                sh 'cmake -S . -B build.clang -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=/usr/bin/clang++'
+                sh 'cmake --build build.clang'
             }
         }
         stage('Test Clang') {
             steps {
-                sh '. ./asan_env && make -j4 CXX=clang++ clean check'
+                sh './build.clang/test_nbt'
             }
         }
     }
